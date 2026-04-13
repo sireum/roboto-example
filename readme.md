@@ -174,6 +174,8 @@ Commands use the syntax: `command[(options)]: arguments`
 | `clickText` | `clickText[(timeoutMs, xOff, yOff)]: text` | Find text on screen using OCR and click it |
 | `waitForText` | `waitForText[(timeoutMs)]: text` | Wait for text to appear on screen using OCR |
 | `screenCapture` | `screenCapture: output.png` | Capture the screen to a file |
+| `hideCursor` | `hideCursor` | Hide the mouse cursor for the rest of the script — stops compositing the cursor overlay onto recorded frames; on macOS also runs a tiny Swift helper that calls `CGDisplayHideCursor` to truly hide the OS cursor system-wide |
+| `showCursor` | `showCursor` | Re-enable the cursor overlay; on macOS lets the helper exit cleanly via `CGDisplayShowCursor` so the system cursor reappears |
 
 ### Keys
 
@@ -205,3 +207,25 @@ Workflow:
 3. Optionally, make the background transparent for theme-independent matching
 4. Save the cropped image next to the `.md` file
 5. Reference it: `clickImage(0.9): my-button.png`
+
+### Hiding the Cursor (`hideCursor` / `showCursor`)
+
+Useful for screen recordings of TUI demos where the mouse pointer would
+otherwise sit on top of the captured frames.
+
+- `hideCursor` stops Roboto from compositing its cursor overlay onto the
+  recorded frames (`drawCursor=false`).
+- On macOS it additionally spawns a tiny Swift helper that calls
+  `CGDisplayHideCursor(CGMainDisplayID())` and blocks on its stdin so the
+  OS cursor itself is hidden system-wide for the duration. The helper
+  balances the hide with `CGDisplayShowCursor` when its stdin closes
+  (either via `showCursor` or the JVM shutdown hook on script exit), so
+  the cursor is never left hidden on a crash.
+- On non-macOS platforms the helper is skipped and Roboto falls back to
+  parking the OS pointer at the right edge / vertical-middle of the
+  primary screen, which avoids menu-bar / dock / hot-corner triggers.
+- `showCursor` reverses both effects.
+
+Typical use is a single `hideCursor` near the top of the script —
+matching `showCursor` is only needed if a later section actually requires
+cursor visibility.
