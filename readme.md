@@ -83,6 +83,7 @@ template images for `clickImage` and `waitForImage` commands.
 name: "Script Name"
 defaultCharDelayMs: 50
 defaultActionDelayMs: 2000
+defaultSpeakGapMs: 300
 vars:
   - key: value
 varsMac:
@@ -104,6 +105,7 @@ subst:
 | `name` | Script name displayed at startup | `"Roboto"` |
 | `defaultCharDelayMs` | Default delay (ms) between characters for `typeText` | `50` |
 | `defaultActionDelayMs` | Default delay (ms) between actions | `2000` |
+| `defaultSpeakGapMs` | Pause (ms) inserted after each `speak` finishes (sync, or after `waitForSpeech` resolves an async speak). Set `0` to disable | `300` |
 | `vars` | Base variables (all platforms) | |
 | `varsMac` | macOS variable overrides | |
 | `varsWin` | Windows variable overrides | |
@@ -169,6 +171,7 @@ Commands use the syntax: `command[(options)]: arguments`
 | `mouseClick` | `mouseClick[(button)]: x, y` | Click at coordinates (`Left`/`Middle`/`Right`, default `Left`) |
 | `mouseDoubleClick` | `mouseDoubleClick[(button)]: x, y` | Double-click at coordinates |
 | `mouseDrag` | `mouseDrag: fromX, fromY, toX, toY` | Drag from one point to another |
+| `mouseWheel` | `mouseWheel: notches[, durationMs]` | Rotate the scroll wheel by `notches` ticks (negative = scroll up, positive = scroll down). Optional `durationMs` paces the ticks for a smooth scroll |
 | `clickImage` | `clickImage[(similarity, xOff, yOff)]: image.png` | Find image on screen and click it (path relative to `.md` file) |
 | `waitForImage` | `waitForImage[(similarity, timeoutMs)]: image.png` | Wait for image to appear on screen |
 | `clickText` | `clickText[(timeoutMs, xOff, yOff)]: text` | Find text on screen using OCR and click it |
@@ -229,3 +232,21 @@ otherwise sit on top of the captured frames.
 Typical use is a single `hideCursor` near the top of the script —
 matching `showCursor` is only needed if a later section actually requires
 cursor visibility.
+
+### Scrolling (`mouseWheel`)
+
+Rotates the scroll wheel by a signed number of notches. Sign follows the
+`java.awt.Robot.mouseWheel` contract: **positive scrolls down, negative
+scrolls up.**
+
+- `mouseWheel: -10` — instant 10-notch scroll up; all ticks dispatched
+  at once.
+- `mouseWheel: -300, 12000` — 300-notch scroll up paced over 12000 ms
+  (one tick every `durationMs / |notches|` = 40 ms) for a visibly
+  smooth scroll suitable for screen recordings.
+
+When `durationMs == 0` (or omitted), all ticks fire immediately —
+fastest, but jumps visually. Setting `durationMs > 0` spreads the ticks
+evenly across the duration so the scroll animates at a steady speed,
+which reads better on video and gives the viewer time to follow the
+content moving past.
